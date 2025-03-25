@@ -89,7 +89,8 @@ ui <- dashboardPage(
               
               # Add filters here
               fluidRow(
-                box(fluidRow(
+                box(width = 12, status = "primary", solidHeader = TRUE,
+                    fluidRow(
                       column(width = 2,
                          selectInput("year_start", "From Year:",
                                      choices = NULL,
