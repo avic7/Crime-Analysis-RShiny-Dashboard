@@ -137,7 +137,8 @@ server <- function(input, output, session) {
       count <- max(crime_counts)
       
       valueBox(
-        value = most_common,
+        value = tags$div(style = "white-space: normal; word-wrap: break-word; line-height: 1.2;", 
+                         most_common),
         subtitle = paste0(format(count, big.mark = ","), " incidents"),
         icon = icon("file-alt"),
         color = "purple"
@@ -202,17 +203,21 @@ server <- function(input, output, session) {
     data <- filtered_data_with_button()
     
     if(nrow(data) > 0) {
-      # Extract month and year from date
-      data$month_year <- format(data$Crime_Occured, "%Y-%m")
+      # Extract month from date
+      data$month <- format(data$Crime_Occured, "%B")
       
+      # Aggregate crime counts by month across all selected years
       monthly_counts <- data %>%
-        count(month_year) %>%
-        arrange(month_year)
-      
-      p <- ggplot(monthly_counts, aes(x = month_year, y = n, group = 1)) +
+        group_by(month) %>%
+        summarize(n = n()) %>%
+        mutate(month = factor(month, 
+                              levels = c("January", "February", "March", "April", "May", "June", 
+                                         "July", "August", "September", "October", "November", "December")))
+
+      p <- ggplot(monthly_counts, aes(x = month, y = n, group = 1)) +
         geom_line(color = "steelblue", size = 1) +
         geom_point(color = "steelblue", size = 3) +
-        labs(x = "Month", y = "Number of Incidents") +
+        labs(x = "Month", y = "Total Incidents") +
         theme_minimal() +
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       
@@ -248,18 +253,50 @@ server <- function(input, output, session) {
         group_by(Area_Name) %>%
         summarize(
           count = n(),
-          median_income = mean(as.numeric(`Median Household Income`), na.rm = TRUE)
-        ) %>%
-        filter(!is.na(median_income))
+           median_income = as.numeric(gsub("[^0-9.]", "", 'Median Household Income'))
+      ) %>%
+      filter(!is.na(median_income) & median_income > 0)
+    
       
-      p <- plot_ly(income_crime, x = ~median_income, y = ~count, 
-                   type = 'scatter', mode = 'markers',
-                   text = ~Area_Name,
-                   marker = list(size = 10, opacity = 0.8, color = "darkblue")) %>%
+      # Add correlation information
+      correlation <- cor(income_crime$median_income, income_crime$count)
+      
+      p <- plot_ly(income_crime, 
+                   x = ~median_income, 
+                   y = ~count, 
+                   type = 'scatter', 
+                   mode = 'markers',
+                   text = ~paste(
+                     "Area: ", Area_Name, 
+                     "<br>Median Income: $", format(median_income, big.mark = ","),
+                     "<br>Crime Incidents: ", count
+                   ),
+                   hoverinfo = 'text',
+                   marker = list(
+                     size = 10, 
+                     opacity = 0.7, 
+                     color = ~count, 
+                     colorscale = 'Viridis'
+                   )
+      ) %>%
         layout(
-          title = "Crime Incidents vs. Median Household Income by Area",
-          xaxis = list(title = "Median Household Income ($)"),
-          yaxis = list(title = "Number of Crime Incidents")
+          title = paste("Crime Incidents vs. Median Household Income "),
+          xaxis = list(
+            title = "Median Household Income ($)", 
+            tickformat = "$,"
+          ),
+          yaxis = list(title = "Number of Crime Incidents"),
+          # Add a trend line
+          shapes = list(
+            type = "line",
+            line = list(color = "red", width = 2, dash = "dot"),
+            x0 = min(income_crime$median_income),
+            x1 = max(income_crime$median_income),
+            y0 = min(income_crime$count) + (max(income_crime$count) - min(income_crime$count)) * 
+              (min(income_crime$median_income) - min(income_crime$median_income)) / 
+              (max(income_crime$median_income) - min(income_crime$median_income)),
+            y1 = max(income_crime$count)
+          )
         )
       
       p
