@@ -7,6 +7,7 @@ library(DT)
 library(lubridate)
 library(plotly)
 library(readxl)
+library(leaflet.extras)
 
 
 # UI 
@@ -158,20 +159,69 @@ ui <- dashboardPage(
       
       # Crime Map Tab
       tabItem(tabName = "map",
-              h2("Crime Map Tab"),
-              p("This is the crime map tab. Add your content here.")
+              h2("Crime Map Analysis"),
+              
+              # Map Controls Row
+              fluidRow(
+                box(width = 12, status = "primary", solidHeader = TRUE, title = "Map Controls",
+                    fluidRow(
+                      column(width = 2,
+                             selectInput("map_year", "Year:",
+                                         choices = NULL,
+                                         selected = NULL)
+                      ),
+                      column(width = 3,
+                             selectInput("map_area", "Area:",
+                                         choices = NULL,
+                                         selected = "All")
+                      ),
+                      column(width = 3,
+                             selectInput("map_crime_type", "Crime Type:",
+                                         choices = NULL,
+                                         selected = "All")
+                      ),
+                      column(width = 2,
+                             selectInput("map_view", "Map View:",
+                                         choices = list("Heatmap" = "heatmap",
+                                                        "Markers" = "markers",
+                                                        "Clusters" = "clusters"),
+                                         selected = "heatmap")
+                      ),
+                      column(width = 2, style = "margin-top: 25px;",
+                             actionButton("update_map", "Update Map", 
+                                          icon = icon("refresh"),
+                                          style = "color: #fff; background-color: #3c8dbc; border-color: #3c8dbc")
+                      )
+                    )
+                )
+              ),
+              # Main Map Row
+              fluidRow(
+                box(width = 8, status = "primary", solidHeader = TRUE, title = "Crime Distribution Map",
+                    leafletOutput("crime_map", height = "600px")
+                ),
+                
+                # Map Statistics Sidebar
+                column(width = 4,
+                       box(width = NULL, status = "info", solidHeader = TRUE, title = "Map Statistics",
+                           valueBoxOutput("map_total_crimes", width = NULL),
+                           valueBoxOutput("map_crime_density", width = NULL),
+                           valueBoxOutput("map_hotspot_area", width = NULL)
+                       )
+                )
+              )
       ),
       
       # Time Analysis Tab
       tabItem(tabName = "time",
               h2("Time Analysis Tab"),
-              p("This is the time analysis tab. Add your content here.")
+              p("This is the time analysis tab.")
       ),
       
       # Demographics Tab 
       tabItem(tabName = "demographics",
               h2("Demographics Tab"),
-              p("This is the demographics tab. Add your content here.")
+              p("This is the demographics tab.")
       ),
       
       # Data Table Tab 
